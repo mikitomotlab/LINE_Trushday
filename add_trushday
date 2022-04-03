@@ -1,0 +1,106 @@
+function myFunction() {
+  // カレンダーID
+  var calId = "#########################";
+  // LINE Notifyのアクセストークン
+  var key = "###########################";
+
+  var url = "https://notify-api.line.me/api/notify";
+
+
+  var cal = CalendarApp.getCalendarById(calId);
+  var now = new Date();
+  var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  // googleカレンダーより明日の予定を配列で取得。
+  var tomorrowEvent = cal.getEventsForDay(tomorrow);
+
+  
+  var msg = "";
+  
+  //ゴミ出しを促す
+  var day = GetDayOfWeek();
+  var today = new Date();
+  var weeknum = Math.floor((today.getDate() - today.getDay() + 12 ) / 7);
+  
+  if(day == "日"){
+    var comment = "今日は休みの日ですね！明日は月曜日です!燃えるごみを出しましょう！";
+    }
+  
+  if (day == "月"){
+    if (weeknum == 2 || weeknum == 4)
+      var comment = "１週間が始まりましたね!明日は段ボール、衣類のごみを出す日です!";
+    
+    else
+      var comment = "１週間が始まりましたね!明日は段ボール、乾電池、スプレー缶のごみを出す日です!";
+    }
+ 
+  if (day == "火"){
+    if (weeknum == 1 || weeknum == 3)
+      var comment = "缶・ビン・ペットボトルを出す日です!";
+    else
+      var comment = "金属類を出す日です!";
+    }
+  
+  if (day == "水"){
+    var comment = "明日は燃やせるごみの日です!";
+    }
+  
+  if (day == "木"){
+    var comment = "明日はプラスチックの日です!ちゃんと確認しましょう!";
+    }
+  
+  if (day == "金"){
+    var commnet = "明日は土曜日です!ゆっくりしてください!";
+    }
+  msg += comment;
+  
+  
+  // LINE Notifyに送るメッセージ
+  // 予定がない時
+  if(tomorrowEvent.length === 0){
+    msg += "明日の予定はありません。";
+  }
+  // 予定がある時
+  else{
+    msg += "明日の予定は" + String(tomorrowEvent.length) + "件あります。\n\n";
+    msg += allPlanToMsg(tomorrowEvent);
+  }
+
+  var jsonData = {
+    message: msg
+  }
+
+  var options =
+  {
+    "method" : "post",
+    "contentType" : "application/x-www-form-urlencoded",
+    "payload" : jsonData,
+    "headers": {"Authorization": "Bearer " + key}
+  };
+
+  var res = UrlFetchApp.fetch(url, options);
+}
+
+// イベントの配列をテキストにして返す
+function allPlanToMsg(events/* array */){
+  var msg = "";
+  events.forEach( function(event, index){
+    var title = event.getTitle();
+    var start = event.getStartTime().getHours() + ":" + ("0" + event.getStartTime().getMinutes()).slice(-2);
+    var end = event.getEndTime().getHours() + ":" + ("0" + event.getEndTime().getMinutes()).slice(-2);
+    // 予定が終日の時
+    if( event.isAllDayEvent() ){
+      msg += String(index + 1) + "件目: " + title + " 終日の予定です。\n\n";
+      return;
+    }
+    msg += String(index + 1) + "件目: " + title + " " + start + "~" + end + "\n\n";
+  });
+  return msg;
+}
+
+function GetDayOfWeek() {
+  var date = new Date();
+  var dayOfWeek = date.getDay();
+  var dayOfWeekStr = [ "日", "月", "火", "水", "木", "金", "土" ][dayOfWeek];
+  Logger.log(dayOfWeekStr);
+  return dayOfWeekStr
+}
